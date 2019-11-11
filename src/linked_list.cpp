@@ -151,6 +151,60 @@ namespace  MemoryPool
         throw std::bad_alloc();
 
     #endif
+
+    #ifdef WORSTFIT
+
+        // Quantidade de blocos necessários.
+        unsigned int blocks_required = std::ceil((size+sizeof(Header)) / Block::BlockSize);
+
+        // O próximo bloco.
+        auto curr(m_sentinel->m_next);
+        // O bloco atual.
+        auto last(m_sentinel);
+
+        // Enquanto haver espaço procure.
+        while( curr != nullptr ){
+
+            if( curr->m_lenght > blocks_required ){
+
+                auto proc_maior(curr->next);
+                auto proc_atual(curr);
+
+
+                while(proc_atual != nullptr){
+
+                    if(curr->m_lenght > proc_atual->m_lenght && proc_maior->m_lenght > proc_atual->m_lenght)
+                        proc_maior = proc_atual;
+
+                    proc_atual = proc_atual->m_next;
+                }
+
+                curr = proc_maior;
+
+                // é realizada a alocação
+                auto curr_2(curr+blocks_required);    // 1U significa para não haver a perda de 1 byte.
+                curr_2->m_next = curr->m_next;
+
+                Block* new_block = curr_2;
+                new_block->m_lenght = curr->m_lenght - blocks_required;
+
+                curr->m_lenght = blocks_required;
+
+                // Desconecta o bloco anterior e conecta com o novo.
+                last->m_next = new_block;
+
+                curr->m_next = nullptr;
+
+                return curr->m_raw;
+
+            } else{
+                last = curr;
+                curr = curr->m_next;
+            }
+        }
+        throw std::bad_alloc();
+
+    #endif
         throw std::bad_alloc();
     }
 
